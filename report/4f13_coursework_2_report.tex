@@ -1,6 +1,201 @@
-\documentclass{article}
+\documentclass[11pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[backend=biber]{biblatex}
+\usepackage{csquotes}
+\usepackage{amsmath,amssymb}
+\usepackage{multirow}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{subcaption}
+\usepackage{fontspec}
+\usepackage{listings}
+\newfontfamily\listingsfont[Scale=.7]{Menlo}
+\usepackage{verbatim}
+\graphicspath{ {./figures/} }
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\usepackage[a4paper, margin=3cm]{geometry}
+%\addbibresource{3f3_FTR_bibliography.bib}
+\setlength{\parindent}{4em}
 \begin{document}
+\begin{comment}
+\begin{titlepage}
+	\begin{center}
+        \vspace*{1cm}
+            
+        \Huge
+        \textbf{4F13 Coursework 1 Report}
+            
+        \vspace{0.5cm}
+        \LARGE
+        Gaussian Processes
+            
+        \vspace{3.5cm}
+            
+       \textbf{Rory Highnam}\\
+        \vspace{0.5cm}
+        rjh248\\
+        \vspace{0.5cm}
+        Magdalene college
+            
+        \vfill
+            
+        \vspace{0.8cm}
+            
+            
+        \Large
+       17/10/2021
+            
+    \end{center}
+\end{titlepage}
+\end{comment}
 
-\section{First section}
+\section*{a) }
 
+In this section we trained a GP model with a squared exponential covariance function, and compared the predictive distribution of unoptimised and optimised hyperparameters:
+\begin{lstlisting}[basicstyle=\listingsfont]
+meanfunc = []; covfunc = @covSEiso; likfunc = @likGauss;
+hyp2 = minimize(hyp, @gp, -100, @infGaussLik, meanfunc, covfunc, likfunc, x, y);
+[mu s2] = gp(hyp2, @infGaussLik, meanfunc, covfunc, likfunc, x, y, xs);
+\end{lstlisting}
+The predictive distributions of each model are given in Figure \ref{fig:part-a}. In the optimised model, both the length scale and signal variance are reduced. The effect of this is shown in Figure \ref{fig:part-a-optimised}, where there is less correlation with nearby values, and the correlation drops off more quickly with distance. This means the model is able to follow the data more closely, and react to changes more quickly. The noise variance is significantly reduced for the optimised model, which can be seen in Figure \ref{fig:part-a-optimised}, where the confidence bands are much narrower overall than the unoptimised model. However, in the regions where little data has been observed, the confidence bands are wider. This is because the predictive variance is made up of the prior variance minus the variance explained by the data. In these regions, the data explains very little and so the confidence bands are wider.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{a-unoptimised}
+  \caption{\label{fig:part-a-unoptimised}$l = 0.368$, $\sigma_{signal}^{2}=1.00,$ $\sigma_{noise}^{2}=1.00$}
+\end{subfigure}%
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{a-optimised}
+  \caption{\label{fig:part-a-optimised}$l = 0.128$, $\sigma_{signal}^{2}=0.897,$ $\sigma_{noise}^{2}=0.118$}
+\end{subfigure}
+\caption{\label{fig:part-a}Predictive distribution with SE covariance function}
+\end{figure}
+
+\section*{b)}
+
+We now initialise the hyperparameters with different values and perform the same optimisation:
+\begin{lstlisting}[basicstyle=\listingsfont]
+hyp2 = minimize(hyp, @gp, -100, @infGaussLik, meanfunc, covfunc, likfunc, x, y);
+[mu s2] = gp(hyp2, @infGaussLik, meanfunc, covfunc, likfunc, x, y, xs);
+\end{lstlisting}
+Figure \ref{fig:part-b} shows the optimised models for varying initial hyperparameters, the optimised hyperparameters are given below each plot. Figure \ref{fig:part-b-short_length} shows a plot of the model for the same hyperparameters as in part a), with a relatively short length scale. Figure \ref{fig:part-b-large_length} has a much longer length scale, and hence the model is highly correlated with nearby values. This results in a model that is very smooth, and is less able to react to the data. In Figure \ref{fig:part-b-very_large_length}, the length scale is so large that the model only follows the mean of the dataset, and is unable to capture any other features.  The marginal likelihoods were $6.80 \times 10^{-6}$, $1.07 \times 10^{-34}$ and $9.52 \times 10^{-35}$ for models (a), (b) and (c) respectively. This suggests that model (a) provides the best fit of the data by far. However, it is difficult to say with certainty which model is best without knowing more about either the data generating process, or without more data points to test our model on. For example, it could be the case that the data was truly generated according to the model in Figure \ref{fig:part-b-large_length}, but in a very noisy process. We could encapsulate any prior knowledge of the noise in the generating process through the use of a hyperprior, where we place a prior distribution on the noise variance hyperparameter.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{b-hyp1}
+  \caption{\label{fig:part-b-short_length}$l = 0.128$, $\sigma_{signal}^{2}=0.897,$ $\sigma_{noise}^{2}=0.118$}
+\end{subfigure}%
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{b-hyp2}
+  \caption{\label{fig:part-b-large_length}$l = 8.04$, $\sigma_{signal}^{2}=0.696,$ $\sigma_{noise}^{2}=0.663$}
+\end{subfigure}
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{b-hyp3}
+  \caption{\label{fig:part-b-very_large_length}$l = 22,000$, $\sigma_{signal}^{2}=0.744,$ $\sigma_{noise}^{2}=0.667$}
+\end{subfigure}%
+\caption{\label{fig:part-b}Predictive distributions with SE covariance function for different hyperparameter initialisations}
+\end{figure}
+
+\section*{c)}
+
+We now train a GP model using a periodic covariance function, shown in Figure \ref{fig-part-c}:
+\begin{lstlisting}[basicstyle=\listingsfont]
+meanfunc = []; covfunc = @covPeriodic; likfunc = @likGauss;
+hyp = struct('mean', [], 'cov', [-1 0 0], 'lik', 0);
+hyp2 = minimize(hyp, @gp, -100, @infGaussLik, meanfunc, covfunc, likfunc, x, y);
+[mu s2] = gp(hyp2, @infGaussLik, meanfunc, covfunc, likfunc, x, y, xs);
+\end{lstlisting}
+This seems to give a very good fit of the dataset. However, we must be careful to note that unlike in part a), the confidence intervals in regions with few data points are much narrower. This behaviour is not desirable, we want the model to be less confident for the regions with fewer training data points. The marginal likelihood for this model is $4.81 \times 10^{12}$, so it is likely this data was generated from a periodic process. However, it is difficult to be confident in this conclusion as we only have data points for roughly 3 periods, for $x$ in the interval $[-1.5, 1.5]$. To be more confident in this result, we should try to observe more data points outside of this interval.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.6\linewidth]{c-periodic}
+\caption{\label{fig-part-c}Predictive distribution with periodic covariance function}
+\end{figure}
+
+\section*{d)}
+
+In this section we generate 4 samples at random from a GP with a covariance function that is the product of a squared exponential and periodic function:
+\begin{lstlisting}[basicstyle=\listingsfont]
+covfunc = {@covProd, {@covPeriodic, @covSEiso}};
+K = feval(covfunc{:}, hyp.cov, x) + 1e-6*eye(200);
+z = randn(200,1);
+y = chol(K)'*z;
+\end{lstlisting}
+We add a small positive value to every diagonal element of the covariance matrix to ensure it is positive-definite, so that the Cholesky decomposition can be performed. Because of the finite precision of MATLAB, without this addition, some eigenvalues of the matrix that should be 0 are computed as very small negative numbers, meaning the matrix is not positive-definite. Figure \ref{fig:part-d} shows 4 sample functions generated as above. We can see that they all exhibit similar behaviour, with clear periodicity. However, unlike in section c) the multiplication by the squared exponential function means that the function is not identical in every period. It is equivalent to having a periodic function with a varying amplitude, where the length scale affects how quickly this amplitude varies.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{d-plot1}
+  \caption{\label{fig:part-d-plot1}}
+\end{subfigure}%
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{d-plot2}
+  \caption{\label{fig:part-d-plot2}}
+\end{subfigure}
+\caption{\label{fig:part-d}Random samples from GP with product of squared exponential and periodic covariance functions (4 samples plotted in 2 separate figures for clarity)}
+\end{figure}
+
+\FloatBarrier
+
+\section*{e) }
+
+In this section we generate 2 different GP models, one with a squared exponential (SE) covariance function, and another with the sum of two squared exponential covariance functions, both with Automatic Relevance Determination (ARD):
+\begin{lstlisting}[basicstyle=\listingsfont]
+meanfunc = []; likfunc = @likGauss;
+covfunc = @covSEard;
+covfunc2 = {@covSum, {@covSEard, @covSEard}};
+[mu s2] = gp(hyp, @infGaussLik, meanfunc, covfunc, likfunc, x, y, t);
+[mu_2 s2_2] = gp(hyp2, @infGaussLik, meanfunc, covfunc2, likfunc, x, y, t);
+\end{lstlisting}
+Table \ref{tab:hyperparameter-settings-2D} shows that the model with a single covariance function sets both length scales to very similar values, and so this suggests both dimensions are equally relevant. The model with two squared exponential functions essentially generates separate covariance functions for each dimension of the input data. The first SE function has a very long length scale for the second dimension, meaning it is largely irrelevant in the behaviour of the function, and vice versa for the second SE function. The marginal likelihood is $2.18 \times 10^{8}$ for the simpler model and $6.87 \times 10^{28}$ for the more complex. This suggests that the more complex model is a much better fit of the data, however we must consider that this comes at the cost of model complexity. Visually inspecting the fit of both models (Figure \ref{fig:part-e}) shows no substantial differences between the two models. The more complex model has more degrees of freedom and so might be able to reach a higher marginal likelihood by overfitting the data. Overfitting is possible because we optimise the hyperparameters rather than marginalise them. To ensure the more complex model is not overfitting the data, we should hold back some data points to test the models, and compare their log likelihoods. \newline
+
+\noindent
+Word count: 997
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{ |c|c|c|c| }
+  \hline
+  \multirow{2}{*}{Hyperparameter, $n$} & \multirow{2}{*}{Single SE function} & \multicolumn{2}{|c|}{Sum of two SE functions} \\\cline{3-4}
+  &  & First SE function & Second SE function \\
+  \hline
+  length scale, $l_1$ & 1.51 & 1.45 & 490 \\
+  length scale, $l_2$ & 1.29 & 879 & 0.984 \\
+  signal variance, $\sigma_{signal}^{2}$ & 1.11 & 1.10 & 0.710 \\ \cline{3-4}
+  noise variance, $\sigma_{noise}^{2}$ & 0.103 & \multicolumn{2}{|c|}{0.0977}\\ 
+  \hline
+\end{tabular}
+\end{center}
+\caption{\label{tab:hyperparameter-settings-2D}Hyperparameter settings for 2-D data}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{e-single}
+  \caption{\label{fig:part-e-single}}
+\end{subfigure}%
+\begin{subfigure}{.5\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{e-sum}
+  \caption{\label{fig:part-e-sum}}
+\end{subfigure}
+\caption{\label{fig:part-e}Plot of mean predictive distribution for each covariance function, along with the dataset.}
+\end{figure}
+
+%\printbibliography
 \end{document}
